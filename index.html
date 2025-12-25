@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Feliz Navidad 🎄</title>
+<style>
+body {
+  margin: 0;
+  background: #050814;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+canvas {
+  display: block;
+  margin: auto;
+  background: linear-gradient(#050814, #0b3c5d);
+}
+
+#messageBox, #finalMessage {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  padding: 15px 25px;
+  border-radius: 12px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+#messageBox { top: 20px; font-size: 18px; }
+#finalMessage {
+  top: 40%;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+#secret {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 40px;
+  font-size: 20px;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<div id="messageBox"></div>
+<div id="finalMessage">🎄 Feliz Navidad, a todos los amo ❤️</div>
+
+<div id="secret">
+  <div>
+    <h2>🎁 Mensaje especial 🎁</h2>
+    <p>
+      Les dije la combinación porque quiero decirle gracias a ustedes dos,
+      son mis pilares más fuertes, los quiero como mis hermanos, mis mejores amigos.
+      <br><br>
+      Ellie, agradezco el día en el que te conocí jugando Rivals.
+      Gracias por ser, estar y ayudar cuando lo necesitaba.
+      Caminos, mi chocolatito de miel 💛
+      <br><br>
+      Gracias a esa persona que me dijo “métete a Popeyes”.
+      Eres mi hermano y mejor amigo.
+      Te quiero muchísimo y siempre voy a estar para ti.
+    </p>
+  </div>
+</div>
+
+<!-- 🎶 Música -->
+<audio id="music" loop>
+  <source src="navidad.mp3" type="audio/mpeg">
+</audio>
+
+
+<!-- 🔔 Campana -->
+<audio id="bell">
+  <source src="https://cdn.pixabay.com/audio/2021/08/04/audio_ef8c66e36a.mp3">
+</audio>
+
+<canvas id="game" width="900" height="300"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = 300;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+const msg = document.getElementById("messageBox");
+const finalMsg = document.getElementById("finalMessage");
+const secret = document.getElementById("secret");
+const music = document.getElementById("music");
+const bell = document.getElementById("bell");
+
+music.volume = 0.2;
+bell.volume = 0.6;
+
+let musicStarted = false;
+
+// 🦖 Dino
+let dino = { x:80, y:220, w:40, h:40, vy:0, jumping:false };
+let ground = 260;
+let gravity = 0.7;
+
+// 🏃 Movimiento
+let speed = 2;
+let groundOffset = 0;
+let frames = 0;
+
+// ❄️ Nieve
+let snow = Array.from({length:80},()=>({
+  x:Math.random()*window.innerWidth,
+  y:Math.random()*300,
+  r:Math.random()*3+1,
+  v:Math.random()*1.2+0.4
+}));
+
+// 💬 Mensajes (ORDENADOS, GARANTIZADOS)
+const messages = [
+  "Hice esto porque es mi manera de agradecerles 💛",
+  "Quiero que sepan que son muy importantes para mí.",
+  "Con su ayuda, lo sepan o no, sí sirve.",
+  "Gracias por llegar a mi vida y por quedarse.",
+  "Aunque no he tenido buenos días…",
+  "ustedes estuvieron para mí.",
+  "Cuando lo necesiten, tienen un amigo aquí.",
+  "Los quiero mucho amigos ❤️"
+];
+
+let messageIndex = 0;
+let finished = false;
+let messageCooldown = 0;
+
+// 🎮 Controles
+document.addEventListener("keydown", e=>{
+  if(!musicStarted){
+    music.play();
+    musicStarted = true;
+  }
+
+  if(e.code === "Space" && !dino.jumping){
+    bell.currentTime = 0;
+    bell.play();
+    dino.vy = -14;
+    dino.jumping = true;
+  }
+  registerSecret(e.code);
+});
+
+// 🎁 Easter Egg
+const combo = ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","ArrowUp","ArrowDown"];
+let input = [];
+function registerSecret(k){
+  if(!finished) return;
+  input.push(k);
+  if(input.length > combo.length) input.shift();
+  if(combo.every((v,i)=>v===input[i])){
+    secret.style.display = "flex";
+  }
+}
+
+// 💬 Mostrar mensaje (controlado)
+function showMessage(text){
+  msg.textContent = text;
+  msg.style.opacity = 1;
+  messageCooldown = 300; // ~5 segundos
+}
+
+// ❄️ Nieve
+function drawSnow(){
+  ctx.fillStyle="#fff";
+  snow.forEach(f=>{
+    ctx.beginPath();
+    ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+    ctx.fill();
+    f.y += f.v;
+    if(f.y > canvas.height){
+      f.y = -5;
+      f.x = Math.random()*canvas.width;
+    }
+  });
+}
+
+// 🔁 Loop principal
+function update(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  drawSnow();
+
+  // 🛣️ Piso en movimiento
+  groundOffset -= speed;
+  if(groundOffset <= -40) groundOffset = 0;
+  ctx.fillStyle="#aaa";
+  for(let i=0;i<canvas.width/40+1;i++){
+    ctx.fillRect(i*40 + groundOffset, ground, 30, 3);
+  }
+
+  // 🦖 Dino
+  dino.vy += gravity;
+  dino.y += dino.vy;
+  if(dino.y >= ground - dino.h){
+    dino.y = ground - dino.h;
+    dino.vy = 0;
+    dino.jumping = false;
+  }
+  ctx.fillStyle="#00ffcc";
+  ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
+
+  // ⏱️ Mensajes por tiempo (no se saltan)
+  frames++;
+  if(!finished){
+    if(messageCooldown > 0){
+      messageCooldown--;
+      if(messageCooldown === 0){
+        msg.style.opacity = 0;
+      }
+    } else if(messageIndex < messages.length && frames % 360 === 0){
+      showMessage(messages[messageIndex]);
+      messageIndex++;
+      if(messageIndex === messages.length){
+        finished = true;
+        setTimeout(()=>{
+          finalMsg.style.opacity = 1;
+        }, 2000);
+      }
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+
+update();
+</script>
+
+
+</body>
+</html>
